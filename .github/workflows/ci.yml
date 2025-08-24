@@ -15,16 +15,25 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    env:
+      DB_DATABASE: ${{ secrets.DB_DATABASE || 'smart_task_api' }}
+      DB_USERNAME: ${{ secrets.DB_USERNAME || 'laravel' }}
+      DB_PASSWORD: ${{ secrets.DB_PASSWORD || 'p@$$w0rd' }}
+      DB_ROOT_PASSWORD: ${{ secrets.DB_ROOT_PASSWORD || 'root' }}
+
     services:
       db:
         image: mysql:8.4
         env:
-          MYSQL_DATABASE: ${{ secrets.DB_DATABASE }}
-          MYSQL_USER: ${{ secrets.DB_USERNAME }}
-          MYSQL_PASSWORD: ${{ secrets.DB_PASSWORD }}
-          MYSQL_ROOT_PASSWORD: ${{ secrets.DB_ROOT_PASSWORD }}
+          MYSQL_DATABASE: ${{ env.DB_DATABASE }}
+          MYSQL_USER: ${{ env.DB_USERNAME }}
+          MYSQL_PASSWORD: ${{ env.DB_PASSWORD }}
+          MYSQL_ROOT_PASSWORD: ${{ env.DB_ROOT_PASSWORD }}
         ports:
           - 3306:3306
+        # (no options/health-cmd with expressions)
 
       redis:
         image: redis:7-alpine
@@ -58,7 +67,7 @@ jobs:
 
       - name: Write .env for CI
         run: |
-          cat > .env <<'ENV'
+          cat > .env <<ENV
           APP_NAME=SmartTasks
           APP_ENV=testing
           APP_DEBUG=true
@@ -67,9 +76,9 @@ jobs:
           DB_CONNECTION=mysql
           DB_HOST=127.0.0.1
           DB_PORT=3306
-          DB_DATABASE=${{ secrets.DB_DATABASE }}
-          DB_USERNAME=${{ secrets.DB_USERNAME }}
-          DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+          DB_DATABASE=${DB_DATABASE}
+          DB_USERNAME=${DB_USERNAME}
+          DB_PASSWORD=${DB_PASSWORD}
 
           CACHE_DRIVER=redis
           SESSION_DRIVER=redis
@@ -83,10 +92,13 @@ jobs:
           php artisan key:generate
           php artisan config:clear
 
-      - name: Wait for DB (laravel user)
+      - name: Wait for DB (app user)
+        env:
+          DB_USERNAME: ${{ env.DB_USERNAME }}
+          DB_PASSWORD: ${{ env.DB_PASSWORD }}
         run: |
           for i in {1..60}; do
-            mysql -h 127.0.0.1 -u "${{ secrets.DB_USERNAME }}" -p"${{ secrets.DB_PASSWORD }}" -e "SELECT 1" && exit 0
+            mysql --host=127.0.0.1 --user="$DB_USERNAME" --password="$DB_PASSWORD" --execute="SELECT 1" && exit 0
             echo "Waiting for MySQL... ($i/60)"; sleep 2
           done
           echo "MySQL did not become ready in time" >&2
