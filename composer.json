@@ -39,7 +39,8 @@
             "Modules\\Core\\Database\\Factories\\": "Modules/Core/database/factories/",
             "Modules\\Auth\\Database\\Seeders\\": "Modules/Auth/database/seeders",
             "Modules\\Core\\Database\\Seeders\\": "Modules/Core/database/seeders",
-            "Modules\\Core\\Tests\\": "Modules/Core/tests"
+            "Modules\\Core\\Tests\\": "Modules/Core/tests",
+            "Modules\\Auth\\Tests\\Feature\\": "Modules/Auth/tests/Feature"
         }
     },
     "autoload-dev": {
