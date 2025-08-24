@@ -1,78 +1,323 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Smart-Tasks API (Laravel 12)
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A modular Laravel REST API for task management using:
 
-## About Laravel
+* **Laravel 12**, **Sanctum** (auth)
+* **nwidart/laravel-modules** (modular architecture)
+* **prettus/l5-repository** (repository pattern)
+* **darkaonline/l5-swagger** (OpenAPI docs)
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+Supports both **local (bare-metal)** and **Docker** development.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+---
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## Table of Contents
 
-## Learning Laravel
+1. [Requirements](#requirements)
+2. [Project Structure](#project-structure)
+3. [Setup — Normal (bare-metal)](#setup--normal-bare-metal)
+4. [Setup — Docker](#setup--docker)
+5. [Running the App](#running-the-app)
+6. [Database Migrations & Seeding](#database-migrations--seeding)
+7. [Authentication (Sanctum)](#authentication-sanctum)
+8. [API Documentation (Swagger)](#api-documentation-swagger)
+9. [Testing (PHPUnit)](#testing-phpunit)
+10. [Common Scripts](#common-scripts)
+11. [Troubleshooting](#troubleshooting)
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+---
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+## Requirements
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+### Normal (bare-metal)
 
-## Laravel Sponsors
+* PHP **8.2+**
+* Composer **2+**
+* MySQL **8.0+** (or PostgreSQL 14+/16+ if you switch the `.env`)
+* Redis **6/7** (optional but recommended for queues/cache)
+* Node.js (if you plan to use Vite for any frontend assets; not required for the API)
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+### Docker
 
-### Premium Partners
+* Docker Desktop (Compose v2)
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+---
 
-## Contributing
+## Project Structure
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+Modular by domain using **nwidart/laravel-modules**:
 
-## Code of Conduct
+```
+app/
+bootstrap/
+config/
+Modules/
+  Core/
+    Http/Middleware/SecureHeaders.php
+    Providers/CoreServiceProvider.php
+    Database/Migrations/... (audits table)
+    Entities/Audit.php
+    Traits/Auditable.php
+  Auth/
+    Routes/api.php
+    Models/User.php
+    Http/Controllers/AuthController.php
+    Http/Requests/LoginRequest.php
+    Http/Requests/RegisterRequest.php
+    Repositories/{AuthRepository, AuthInterface}.php
+    Services/AuthService.php
+  Task/
+    Routes/api.php
+    Models/{Task,Status}.php
+    Database/Migrations/...
+    Database/Seeders/StatusSeeder.php
+    Http/Controllers/TaskController.php
+    Http/Requests/{StoreTaskRequest,UpdateTaskRequest}.php
+    Http/Resources/TaskResource.php
+    Http/Resources/StatusResource.php
+    Repositories/{TaskRepository,TaskInterface}.php
+    Repositories/{StatusRepository, StatusInterface}.php
+    Services/{TaskService,StatusService}.php
+public/
+routes/
+tests/
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+Key ideas:
 
-## Security Vulnerabilities
+* **Auth** (Sanctum tokens) and **Tasks** live in separate modules with their own routes, controllers, migrations, etc.
+* **Core** hosts cross-cutting concerns (secure headers, auditing).
+* **Repositories** (Prettus) encapsulate persistence.
+* **FormRequests** validate input.
+* **Resources** shape API responses.
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+---
 
-## License
+## Setup — Normal (bare-metal)
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+1. **Clone & install**
 
-## API Documentation (Swagger / OpenAPI)
+```bash
+git clone <repo> smart-tasks-api
+cd smart-tasks-api
+composer install
+cp .env.example .env
+php artisan key:generate
+```
 
-This project uses L5 Swagger and swagger-php annotations located under `app/` and `Modules/` to generate OpenAPI documentation.
+2. **Configure `.env`** (MySQL example)
 
-Generate docs via Artisan:
+```env
+APP_NAME="Smart Task API"
+APP_ENV=local
+APP_DEBUG=true
+APP_URL=http://127.0.0.1:8000
 
-- php artisan docs:generate
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=smart_task_api
+DB_USERNAME=root
+DB_PASSWORD= 
 
-After generation, open the Swagger UI at:
+CACHE_DRIVER=file      # or redis
+QUEUE_CONNECTION=sync  # or redis
+SESSION_DRIVER=file    # or redis
+```
 
-- http://localhost:8000/api/documentation
+3. **Migrate & seed**
 
-Notes:
-- The scanner is configured to include all annotations under `app` and `Modules` (see `config\l5-swagger.php`).
-- The server URL is derived from `APP_URL` and defaults to `APP_URL/api`.
-- If you change annotations, re-run `php artisan docs:generate`.
+```bash
+php artisan migrate --seed
+```
+
+4. **(Optional) Vendor configs**
+
+```bash
+php artisan vendor:publish --provider="L5Swagger\L5SwaggerServiceProvider"
+php artisan vendor:publish --provider="Nwidart\Modules\LaravelModulesServiceProvider"
+```
+
+---
+
+## Setup — Docker
+
+This repo includes a ready Compose stack (**Nginx + PHP-FPM + MySQL + Redis**).
+
+1. **.env for containers**
+
+```env
+APP_NAME=SmartTasks
+APP_ENV=local
+APP_DEBUG=true
+APP_URL=http://localhost
+
+DB_CONNECTION=mysql
+DB_HOST=db
+DB_PORT=3306
+DB_DATABASE=smart_task_api
+DB_USERNAME=laravel
+DB_PASSWORD=laravel
+
+REDIS_HOST=redis
+REDIS_PORT=6379
+QUEUE_CONNECTION=redis
+CACHE_DRIVER=redis
+SESSION_DRIVER=redis
+```
+
+2. **Bring it up**
+
+```bash
+docker compose up -d --build
+docker compose exec app php artisan key:generate
+docker compose exec app php artisan migrate --seed
+```
+
+> If port **3306** on your host is busy, remove or change the `db.ports` mapping in `docker-compose.yml` (e.g., `ports: ["3307:3306"]`) or remove it entirely (your app talks to `db:3306` internally).
+
+---
+
+## Running the App
+
+### Normal
+
+```bash
+php artisan serve  # http://127.0.0.1:8000
+```
+
+### Docker
+
+* Nginx exposes **[http://localhost](http://localhost)**
+* PHP-FPM is behind Nginx (container `app`)
+* Redis, DB are on the Compose network
+
+---
+
+## Database Migrations & Seeding
+
+* **Normal:** `php artisan migrate --seed`
+* **Docker:** `docker compose exec app php artisan migrate --seed`
+
+> The `Task` module seeds base statuses (To Do, In Progress, Done). Add more in `Modules/Task/Database/Seeders/StatusSeeder.php`.
+
+---
+
+## Authentication (Sanctum)
+
+* **Register:** `POST /api/v1/auth/register`
+  `{ name, email, password, password_confirmation }`
+* **Login:** `POST /api/v1/auth/login`
+  Returns `{ token }`
+* **Logout:** `POST /api/v1/auth/logout` (Authorization: `Bearer <token>`)
+
+Use the returned token with `Authorization: Bearer <token>` for protected endpoints.
+
+---
+
+## API Documentation (Swagger)
+
+This project uses **l5-swagger** to generate OpenAPI docs.
+
+1. **Generate docs**
+
+    * Normal: `php artisan l5-swagger:generate`
+    * Docker: `docker compose exec app php artisan l5-swagger:generate`
+
+2. **Open Swagger UI**
+
+    * Visit: **`/api/documentation`** (e.g., `http://localhost/api/documentation`)
+
+> The config scans controller annotations under `Modules/Auth/Http/Controllers` and `Modules/Task/Http/Controllers`. Adjust `config/l5-swagger.php` → `paths.annotations` if you add more modules.
+
+---
+
+## Testing (PHPUnit)
+
+No Pest—pure PHPUnit in module folders:
+
+* **Feature tests** under `Modules/*/Tests/Feature`
+* **Unit tests** under `Modules/*/Tests/Unit`
+* **Factories** under `Modules/Task/Database/factories`
+
+Run:
+
+```bash
+# Normal
+php artisan test
+
+# Docker
+docker compose exec app php artisan test
+```
+
+> Ensure `phpunit.xml` includes `./Modules/*/Tests` so tests are discovered.
+
+---
+
+## Common Scripts
+
+`composer.json` includes helpful scripts:
+
+* **Dev multi-process runner** (serve, queue listener, pail logs, Vite):
+
+  ```bash
+  composer run dev
+  ```
+* **Tests:**
+
+  ```bash
+  composer test
+  ```
+
+---
+
+## Example API Surface
+
+```
+POST   /api/v1/auth/register
+POST   /api/v1/auth/login
+POST   /api/v1/auth/logout             (auth)
+
+GET    /api/v1/statuses                   ?search=title:Testing&orderBy=created_at&sortedBy=desc&per_page=10
+
+GET    /api/v1/tasks                   ?search=title:Testing&orderBy=created_at&sortedBy=desc&per_page=10
+GET    /api/v1/tasks/{id}
+POST   /api/v1/tasks                   (auth)
+PUT    /api/v1/tasks/{id}              (auth)
+DELETE /api/v1/tasks/{id}              (auth)
+POST   /api/v1/tasks/{id}/assign       (auth)
+POST   /api/v1/tasks/{id}/change-status       (auth)
+```
+
+---
+
+## Troubleshooting
+
+**MySQL container fails with `mysql.user` table missing**
+
+* The volume got half-initialized. Reset it:
+
+  ```bash
+  docker compose down
+  docker volume rm <your_mysqldata_volume_name>
+  docker compose up -d
+  ```
+
+**Port 3306 in use**
+
+* Remove `ports` mapping on `db` in Compose (app uses internal network), or map to a different host port:
+  `ports: ["3307:3306"]`
+
+**`pg_config not found` during build**
+
+* You included `pdo_pgsql` in the Dockerfile without Postgres headers. Either remove `pdo_pgsql` (if using MySQL) or add `postgresql-dev build-base` during build.
+
+**`phpize failed` when installing PECL redis**
+
+* Install build tools first: `apk add --no-cache --virtual .build-deps $PHPIZE_DEPS`, then `pecl install redis`, then `apk del .build-deps`.
+
+**403/401 on protected routes**
+
+* Include `Authorization: Bearer <token>` returned from the login endpoint.
+
+---
