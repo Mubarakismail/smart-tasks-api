@@ -20,7 +20,7 @@ jobs:
     env:
       DB_DATABASE: ${{ secrets.DB_DATABASE || 'smart_task_api' }}
       DB_USERNAME: ${{ secrets.DB_USERNAME || 'laravel' }}
-      DB_PASSWORD: ${{ secrets.DB_PASSWORD || 'p@$$w0rd' }}
+      DB_PASSWORD: ${{ secrets.DB_PASSWORD || '' }}
       DB_ROOT_PASSWORD: ${{ secrets.DB_ROOT_PASSWORD || 'root' }}
 
     services:
