@@ -72,6 +72,7 @@ jobs:
           APP_ENV=testing
           APP_DEBUG=true
           APP_URL=http://localhost
+          APP_KEY=
 
           DB_CONNECTION=mysql
           DB_HOST=127.0.0.1
