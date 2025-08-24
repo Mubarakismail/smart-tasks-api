@@ -19,14 +19,14 @@ jobs:
       db:
         image: mysql:8.4
         env:
-          MYSQL_DATABASE: smart_task_api
-          MYSQL_USER: laravel
-          MYSQL_PASSWORD: laravel
-          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: ${{ secrets.DB_DATABASE }}
+          MYSQL_USER: ${{ secrets.DB_USERNAME }}
+          MYSQL_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          MYSQL_ROOT_PASSWORD: ${{ secrets.DB_ROOT_PASSWORD }}
         ports:
           - 3306:3306
         options: >-
-          --health-cmd="mysqladmin ping -h 127.0.0.1 -u laravel -plaravel"
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -u ${{ secrets.DB_USERNAME }} -p${{ secrets.DB_PASSWORD }}"
           --health-interval=5s --health-timeout=5s --health-retries=30
       redis:
         image: redis:7-alpine
@@ -39,7 +39,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php: ['8.2', '8.3']
+        php: [ '8.2', '8.3' ]
 
     steps:
       - name: Checkout
@@ -58,73 +58,51 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y mysql-client
 
-      - name: Cache Composer
-        uses: actions/cache@v4
-        with:
-          path: |
-            vendor
-            ~/.composer/cache
-          key: composer-${{ matrix.php }}-${{ hashFiles('**/composer.lock') }}
-          restore-keys: |
-            composer-${{ matrix.php }}-
-
       - name: Install Composer deps
         run: composer install --no-interaction --prefer-dist --no-progress
 
-      - name: Copy environment
-        run: cp .env.example .env
+      # 👇 Create a clean .env from secrets (do NOT copy .env.example)
+      - name: Write .env for CI
+        run: |
+          cat > .env <<'ENV'
+          APP_NAME=SmartTasks
+          APP_ENV=testing
+          APP_DEBUG=true
+          APP_URL=http://localhost
 
-      - name: Generate key
-        run: php artisan key:generate
+          DB_CONNECTION=mysql
+          DB_HOST=127.0.0.1
+          DB_PORT=3306
+          DB_DATABASE=${{ secrets.DB_DATABASE }}
+          DB_USERNAME=${{ secrets.DB_USERNAME }}
+          DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+
+          CACHE_DRIVER=redis
+          SESSION_DRIVER=redis
+          QUEUE_CONNECTION=redis
+          REDIS_HOST=127.0.0.1
+          REDIS_PORT=6379
+          ENV
+
+      - name: Generate key & clear config
+        run: |
+          php artisan key:generate
+          php artisan config:clear
 
       - name: Wait for DB (laravel user)
         run: |
           for i in {1..60}; do
-            mysql -h 127.0.0.1 -u laravel -plaravel -e "SELECT 1" && break
+            mysql -h 127.0.0.1 -u "${{ secrets.DB_USERNAME }}" -p"${{ secrets.DB_PASSWORD }}" -e "SELECT 1" && break
             echo "Waiting for MySQL... ($i/60)"; sleep 2
           done
 
       - name: Migrate & seed
-        env:
-          APP_ENV: testing
-          DB_CONNECTION: mysql
-          DB_HOST: 127.0.0.1
-          DB_PORT: 3306
-          DB_DATABASE: ${{ secrets.DB_DATABASE }}
-          DB_USERNAME: ${{ secrets.DB_USERNAME }}
-          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-          CACHE_DRIVER: redis
-          SESSION_DRIVER: redis
-          QUEUE_CONNECTION: redis
-          REDIS_HOST: 127.0.0.1
-          REDIS_PORT: 6379
         run: php artisan migrate --seed --force
 
       - name: Run PHPUnit (with coverage)
-        env:
-          APP_ENV: testing
-          DB_CONNECTION: mysql
-          DB_HOST: 127.0.0.1
-          DB_PORT: 3306
-          DB_DATABASE: ${{ secrets.DB_DATABASE }}
-          DB_USERNAME: ${{ secrets.DB_USERNAME }}
-          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-          CACHE_DRIVER: redis
-          SESSION_DRIVER: redis
-          QUEUE_CONNECTION: redis
-          REDIS_HOST: 127.0.0.1
-          REDIS_PORT: 6379
         run: php artisan test --coverage-clover=coverage.xml
 
       - name: Generate Swagger (OpenAPI)
-        env:
-          APP_ENV: testing
-          DB_CONNECTION: mysql
-          DB_HOST: 127.0.0.1
-          DB_PORT: 3306
-          DB_DATABASE: ${{ secrets.DB_DATABASE }}
-          DB_USERNAME: ${{ secrets.DB_USERNAME }}
-          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
         run: php artisan l5-swagger:generate
 
       - name: Upload coverage
