@@ -16,10 +16,6 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        $this->call([
-            CoreDatabaseSeeder::class,
-            AuthDatabaseSeeder::class,
-            TaskDatabaseSeeder::class,
-        ]);
+        $this->call(\Modules\Task\Database\Seeders\StatusSeeder::class);
     }
 }
