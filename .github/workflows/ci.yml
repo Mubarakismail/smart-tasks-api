@@ -14,10 +14,7 @@ permissions:
 
 jobs:
   test:
-    name: Tests (PHP ${{ matrix.php }})
     runs-on: ubuntu-latest
-    timeout-minutes: 25
-
     services:
       db:
         image: mysql:8.4
@@ -30,7 +27,7 @@ jobs:
           - 3306:3306
         options: >-
           --health-cmd="mysqladmin ping -h 127.0.0.1 -u laravel -plaravel"
-          --health-interval=5s --health-timeout=5s --health-retries=20
+          --health-interval=5s --health-timeout=5s --health-retries=30
       redis:
         image: redis:7-alpine
         ports:
@@ -55,6 +52,12 @@ jobs:
           tools: composer
           extensions: mbstring, intl, zip, pcntl, pdo_mysql, redis
           coverage: xdebug
+
+      # 👇 NEW: install mysql client for the wait loop and troubleshooting
+      - name: Install MySQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y mysql-client
 
       - name: Cache Composer
         uses: actions/cache@v4
@@ -89,12 +92,17 @@ jobs:
       - name: Generate key
         run: php artisan key:generate
 
-      - name: Wait for DB
+      # 👇 Bump wait to 120s and fail gracefully with logs
+      - name: Wait for DB to be ready
+        shell: bash
         run: |
-          for i in {1..30}; do
-            mysqladmin ping -h 127.0.0.1 -u laravel -plaravel && break
-            echo "Waiting for MySQL... ($i)"; sleep 2;
+          for i in {1..60}; do
+            mysqladmin ping -h 127.0.0.1 -u laravel -plaravel && exit 0
+            echo "Waiting for MySQL... ($i/60)"; sleep 2
           done
+          echo "MySQL did not become ready in time"
+          docker logs $(docker ps --filter "ancestor=mysql:8.4" -q) || true
+          exit 1
 
       - name: Migrate & seed
         run: php artisan migrate --seed --force
