@@ -37,6 +37,8 @@
             "Modules\\Task\\Database\\Factories\\": "Modules/Task/database/factories/",
             "Modules\\Auth\\Database\\Factories\\": "Modules/Auth/database/factories/",
             "Modules\\Core\\Database\\Factories\\": "Modules/Core/database/factories/",
+            "Modules\\Auth\\Database\\Seeders": "Modules/Auth/database/seeders",
+            "Modules\\Core\\Database\\Seeders": "Modules/Core/database/seeders",
             "Modules\\Core\\Tests\\": "Modules/Core/tests"
         }
     },
