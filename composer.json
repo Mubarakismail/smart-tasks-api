@@ -35,7 +35,7 @@
             "Database\\Seeders\\": "database/seeders/",
             "Modules\\Task\\Database\\Seeders\\": "Modules/Task/database/seeders/",
             "Modules\\Task\\Database\\factories\\": "Modules/Task/database/factories/",
-            "Modules\\Core\\Tests\\": "Modules/Task/tests"
+            "Modules\\Core\\Tests\\": "Modules/Core/tests"
         }
     },
     "autoload-dev": {
