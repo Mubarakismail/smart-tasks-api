@@ -18,10 +18,10 @@ jobs:
     timeout-minutes: 25
 
     env:
-      DB_DATABASE: ${{ secrets.DB_DATABASE || 'smart_task_api' }}
-      DB_USERNAME: ${{ secrets.DB_USERNAME || 'laravel' }}
-      DB_PASSWORD: ${{ secrets.DB_PASSWORD || '' }}
-      DB_ROOT_PASSWORD: ${{ secrets.DB_ROOT_PASSWORD || 'root' }}
+      DB_DATABASE: ${{ secrets.DB_SMART_DATABASE || 'smart_task_api' }}
+      DB_USERNAME: ${{ secrets.DB_SMART_USERNAME || 'laravel' }}
+      DB_PASSWORD: ${{ secrets.DB_SMART_PASSWORD || '' }}
+      DB_ROOT_PASSWORD: ${{ secrets.DB_SMART_ROOT_PASSWORD || 'root' }}
 
     services:
       db:
