@@ -25,21 +25,16 @@ jobs:
           MYSQL_ROOT_PASSWORD: ${{ secrets.DB_ROOT_PASSWORD }}
         ports:
           - 3306:3306
-        options: >-
-          --health-cmd="mysqladmin ping -h 127.0.0.1 -u ${{ secrets.DB_USERNAME }} -p${{ secrets.DB_PASSWORD }}"
-          --health-interval=5s --health-timeout=5s --health-retries=30
+
       redis:
         image: redis:7-alpine
         ports:
           - 6379:6379
-        options: >-
-          --health-cmd="redis-cli ping"
-          --health-interval=5s --health-timeout=5s --health-retries=30
 
     strategy:
       fail-fast: false
       matrix:
-        php: [ '8.2', '8.3' ]
+        php: ['8.2', '8.3']
 
     steps:
       - name: Checkout
@@ -61,7 +56,6 @@ jobs:
       - name: Install Composer deps
         run: composer install --no-interaction --prefer-dist --no-progress
 
-      # 👇 Create a clean .env from secrets (do NOT copy .env.example)
       - name: Write .env for CI
         run: |
           cat > .env <<'ENV'
@@ -92,9 +86,11 @@ jobs:
       - name: Wait for DB (laravel user)
         run: |
           for i in {1..60}; do
-            mysql -h 127.0.0.1 -u "${{ secrets.DB_USERNAME }}" -p"${{ secrets.DB_PASSWORD }}" -e "SELECT 1" && break
+            mysql -h 127.0.0.1 -u "${{ secrets.DB_USERNAME }}" -p"${{ secrets.DB_PASSWORD }}" -e "SELECT 1" && exit 0
             echo "Waiting for MySQL... ($i/60)"; sleep 2
           done
+          echo "MySQL did not become ready in time" >&2
+          exit 1
 
       - name: Migrate & seed
         run: php artisan migrate --seed --force
