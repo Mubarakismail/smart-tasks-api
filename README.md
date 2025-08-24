@@ -98,7 +98,7 @@ Key ideas:
 1. **Clone & install**
 
 ```bash
-git clone <repo> smart-tasks-api
+git clone https://github.com/Mubarakismail/smart-tasks-api.git smart-tasks-api
 cd smart-tasks-api
 composer install
 cp .env.example .env
