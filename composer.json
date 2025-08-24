@@ -40,7 +40,8 @@
             "Modules\\Auth\\Database\\Seeders\\": "Modules/Auth/database/seeders",
             "Modules\\Core\\Database\\Seeders\\": "Modules/Core/database/seeders",
             "Modules\\Core\\Tests\\": "Modules/Core/tests",
-            "Modules\\Auth\\Tests\\": "Modules/Auth/tests"
+            "Modules\\Auth\\Tests\\": "Modules/Auth/tests",
+            "Modules\\Task\\Tests\\": "Modules/Task/tests"
         }
     },
     "autoload-dev": {
